@@ -309,33 +309,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Download summary text endpoint
-  app.get("/api/videos/:id/summary/text/download", async (req: Request, res: Response) => {
-    try {
-      const videoId = parseInt(req.params.id);
-      const video = await storage.getVideo(videoId);
-      
-      if (!video) {
-        return res.status(404).json({ message: "Video not found" });
-      }
-      
-      const summary = await storage.getVideoSummaryByVideoId(videoId);
-      
-      if (!summary || !summary.textSummary) {
-        return res.status(404).json({ message: "Text summary not found" });
-      }
-      
-      // Set content disposition for download
-      res.setHeader('Content-Disposition', `attachment; filename="summary_${video.originalName.replace(/\.[^/.]+$/, "")}.txt"`);
-      res.setHeader('Content-Type', 'text/plain');
-      
-      // Send the text summary
-      res.send(summary.textSummary);
-    } catch (error) {
-      console.error("Error downloading text summary:", error);
-      res.status(500).json({ message: "Failed to download text summary" });
-    }
-  });
+  // Text summary download removed as we no longer generate text summaries
 
   // Download transcript endpoint
   app.get("/api/videos/:id/transcript/download", async (req: Request, res: Response) => {

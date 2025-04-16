@@ -56,22 +56,7 @@ export default function ResultsSection({ videoId, onNewVideo }: ResultsSectionPr
     setIsTranscriptOpen(!isTranscriptOpen);
   };
 
-  const copyTextToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast({
-        title: "Copied to clipboard",
-        description: "Text summary copied to clipboard successfully",
-      });
-    } catch (error) {
-      console.error("Error copying to clipboard:", error);
-      toast({
-        title: "Copy failed",
-        description: "Failed to copy text to clipboard",
-        variant: "destructive"
-      });
-    }
-  };
+  // We've removed the copyTextToClipboard function as it's no longer needed
 
   // Parse transcript entries from the transcription text
   const parseTranscriptEntries = (transcription: string) => {
@@ -114,7 +99,7 @@ export default function ResultsSection({ videoId, onNewVideo }: ResultsSectionPr
         <CardContent className="p-6">
           <h2 className="text-xl font-semibold mb-4">Summary Results</h2>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="w-full mx-auto max-w-3xl">
             {/* Video Summary */}
             <div>
               <h3 className="text-lg font-medium mb-3">Video Highlights</h3>
@@ -153,7 +138,7 @@ export default function ResultsSection({ videoId, onNewVideo }: ResultsSectionPr
               </div>
               <div className="flex justify-between text-sm">
                 <div>
-                  <span className="text-gray-700 dark:text-gray-300">Duration: </span>
+                  <span className="text-gray-700 dark:text-gray-300">Highlight Duration: </span>
                   <span className="text-gray-900 dark:text-gray-100 font-medium">
                     {formatDuration(summaryData.summaryDuration || 0)}
                   </span>
@@ -181,10 +166,10 @@ export default function ResultsSection({ videoId, onNewVideo }: ResultsSectionPr
                 >
                   <a 
                     href={`/api/videos/${videoId}/summary/download`} 
-                    download={`summary_${summaryData.originalName}`}
+                    download={`highlights_${summaryData.originalName}`}
                   >
                     <Download className="h-4 w-4 mr-1.5" />
-                    Download MP4
+                    Download Highlights
                   </a>
                 </Button>
                 <Button 
@@ -194,48 +179,13 @@ export default function ResultsSection({ videoId, onNewVideo }: ResultsSectionPr
                   onClick={() => {
                     toast({
                       title: "Share link copied",
-                      description: "Link to this summary has been copied to clipboard",
+                      description: "Link to this video has been copied to clipboard",
                     });
                     navigator.clipboard.writeText(window.location.href);
                   }}
                 >
                   <Share className="h-4 w-4 mr-1.5" />
                   Share
-                </Button>
-              </div>
-            </div>
-            
-            {/* Text Summary */}
-            <div>
-              <h3 className="text-lg font-medium mb-3">Text Summary</h3>
-              <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 mb-3 text-gray-800 dark:text-gray-200">
-                {summaryData.textSummary?.split('\n\n').map((paragraph, index) => (
-                  <p key={index} className={index < summaryData.textSummary!.split('\n\n').length - 1 ? "mb-3" : ""}>
-                    {paragraph}
-                  </p>
-                )) || "No text summary available."}
-              </div>
-              
-              <div className="flex gap-2">
-                <Button 
-                  variant="secondary" 
-                  size="sm"
-                  className="text-gray-700 dark:text-gray-300"
-                  onClick={() => summaryData.textSummary && copyTextToClipboard(summaryData.textSummary)}
-                >
-                  <Copy className="h-4 w-4 mr-1.5" />
-                  Copy Text
-                </Button>
-                <Button 
-                  variant="secondary" 
-                  size="sm"
-                  className="text-gray-700 dark:text-gray-300"
-                  asChild
-                >
-                  <a href={`/api/videos/${videoId}/summary/text/download`} download={`summary_${summaryData.originalName}.txt`}>
-                    <Download className="h-4 w-4 mr-1.5" />
-                    Download TXT
-                  </a>
                 </Button>
               </div>
             </div>
