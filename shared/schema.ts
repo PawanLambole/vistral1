@@ -50,13 +50,18 @@ export const insertVideoSchema = createInsertSchema(videos).pick({
 });
 
 // Schema for inserting a video summary
-export const insertVideoSummarySchema = createInsertSchema(videoSummaries).pick({
-  videoId: true,
-  textSummary: true,
-  transcription: true,
-  summaryVideoPath: true,
-  summaryDuration: true,
-});
+export const insertVideoSummarySchema = createInsertSchema(videoSummaries)
+  .pick({
+    videoId: true,
+    textSummary: true,
+    transcription: true,
+    summaryVideoPath: true,
+    summaryDuration: true,
+  })
+  .extend({
+    // Override summaryDuration to allow floating point values that will be converted to integers
+    summaryDuration: z.number().transform(val => Math.round(val)),
+  });
 
 // Schema for updating video status
 export const updateVideoStatusSchema = z.object({
@@ -65,7 +70,7 @@ export const updateVideoStatusSchema = z.object({
 
 // Schema for updating video duration
 export const updateVideoDurationSchema = z.object({
-  originalDuration: z.number(),
+  originalDuration: z.number().transform(val => Math.round(val)),
 });
 
 // Types
