@@ -83,45 +83,133 @@ def trim_video(input_video_path, transcription, output_path):
 
 def select_highlight_segments(duration, transcription):
     """
-    Select segments for the highlight video.
-    In a real implementation, this would analyze the transcription to identify important parts.
+    Select segments for the highlight video based on intelligent analysis of the transcription.
+    This looks for important keywords, segment positions, and speaker changes to identify key moments.
     """
-    # Parse timestamps from transcription
-    timestamps = []
-    segments = transcription.strip().split('\n\n')
+    # Parse timestamps and text from transcription
+    segments = []
+    transcript_segments = transcription.strip().split('\n\n')
     
-    for segment in segments:
+    for segment in transcript_segments:
         lines = segment.split('\n')
-        if lines and ':' in lines[0]:
-            try:
-                parts = lines[0].split(':')
+        if not lines:
+            continue
+            
+        # Extract timestamp and speaker if available
+        timestamp_line = lines[0]
+        
+        # Different timestamp formats: "00:45" or "00:45 - Speaker 1:"
+        timestamp_parts = timestamp_line.split(' - ')
+        time_str = timestamp_parts[0].strip()
+        
+        speaker = ""
+        if len(timestamp_parts) > 1:
+            speaker_part = timestamp_parts[1].strip()
+            if speaker_part.endswith(':'):
+                speaker = speaker_part[:-1]  # Remove the colon
+        
+        # Convert timestamp to seconds
+        try:
+            if ':' in time_str:
+                parts = time_str.split(':')
                 mins = int(parts[0])
                 secs = int(parts[1])
                 timestamp = mins * 60 + secs
-                timestamps.append(timestamp)
-            except (ValueError, IndexError):
-                continue
+            else:
+                timestamp = float(time_str)
+        except (ValueError, IndexError):
+            continue
+            
+        # Extract text content
+        text = ""
+        if len(lines) > 1:
+            text = ' '.join(lines[1:])
+        
+        segments.append({
+            "timestamp": timestamp,
+            "speaker": speaker,
+            "text": text
+        })
     
-    # If we couldn't parse any timestamps, create some based on duration
-    if not timestamps:
+    # If we couldn't parse any segments, create some based on duration
+    if not segments:
         step = duration / 10
-        timestamps = [i * step for i in range(10)]
+        segments = [{"timestamp": i * step, "speaker": "", "text": f"Segment {i+1}"} for i in range(10)]
     
     # Target a summary that's 20-30% of the original
     target_summary_duration = duration * 0.25
-    segments_to_include = min(len(timestamps), max(3, int(len(timestamps) * 0.3)))
     
-    # Select a subset of timestamps
-    selected_indices = sorted(random.sample(range(len(timestamps)), segments_to_include))
-    selected_timestamps = [timestamps[i] for i in selected_indices]
+    # Calculate importance scores for each segment
+    scored_segments = []
+    for i, segment in enumerate(segments):
+        score = 0
+        
+        # Position-based importance (intro and conclusion are important)
+        position_ratio = i / len(segments)
+        if position_ratio < 0.15 or position_ratio > 0.85:
+            score += 5  # Intro and conclusion
+        elif 0.15 <= position_ratio < 0.25 or 0.75 <= position_ratio < 0.85:
+            score += 3  # Near intro/conclusion
+        
+        # Content-based importance (look for key phrases)
+        important_phrases = [
+            "important", "key", "critical", "essential", "significant", 
+            "highlight", "note", "remember", "crucial", "main point",
+            "conclusion", "summary", "result", "finding", "recommend",
+            "example", "demonstrate", "show", "illustrate", "feature"
+        ]
+        
+        text = segment["text"].lower()
+        for phrase in important_phrases:
+            if phrase in text:
+                score += 2
+        
+        # Speaker change indicates potentially important information
+        if i > 0 and segment["speaker"] and segment["speaker"] != segments[i-1]["speaker"]:
+            score += 3
+        
+        # Content length can indicate importance (longer explanations for key points)
+        if len(text) > 100:
+            score += 2
+            
+        # Check for segment transitions using phrases
+        transition_phrases = [
+            "next", "moving on", "now let's", "turning to", "shifting focus",
+            "another", "additionally", "furthermore", "first", "second", "third",
+            "finally", "in conclusion", "to sum up", "lastly"
+        ]
+        
+        for phrase in transition_phrases:
+            if phrase in text:
+                score += 1
+        
+        scored_segments.append({
+            "index": i,
+            "timestamp": segment["timestamp"],
+            "text": segment["text"],
+            "score": score
+        })
+    
+    # Sort segments by score (highest first)
+    scored_segments.sort(key=lambda x: x["score"], reverse=True)
+    
+    # Determine how many segments to include based on target duration
+    segments_to_include = min(len(segments), max(3, int(len(segments) * 0.3)))
+    
+    # Take the top-scoring segments
+    selected_segments = scored_segments[:segments_to_include]
+    
+    # Sort back by timestamp for chronological order
+    selected_segments.sort(key=lambda x: x["timestamp"])
     
     # Create segments with appropriate durations
     highlight_segments = []
     segment_duration = target_summary_duration / segments_to_include
     
-    for timestamp in selected_timestamps:
+    for segment in selected_segments:
         # Ensure the segment doesn't go beyond the video duration
-        start_time = max(0, min(timestamp - 5, duration - segment_duration))
+        # Start a little before the timestamp for context
+        start_time = max(0, min(segment["timestamp"] - 2, duration - segment_duration))
         segment_duration = min(segment_duration, duration - start_time)
         
         highlight_segments.append({
