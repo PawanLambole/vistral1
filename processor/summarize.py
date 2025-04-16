@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import sys
 import os
+import re
 
 def summarize_text(transcription):
     """
@@ -70,20 +71,19 @@ def process_transcript_segments(segments):
             segment_data.append(metadata)
     
     # Analyze topics and themes
-    topics, entities, key_phrases = analyze_content(all_text)
+    topics, entities = analyze_content(all_text)
     
     return {
         'segments': segment_data,
         'speakers': list(speakers),
         'topics': topics,
         'entities': entities,
-        'key_phrases': key_phrases,
         'segment_count': len(segment_data)
     }
 
 def analyze_content(text):
     """
-    Analyze text content to extract topics, entities, and key phrases.
+    Analyze text content to extract topics and entities.
     In a real implementation, this would use NLP techniques such as topic modeling,
     named entity recognition, and key phrase extraction.
     """
@@ -136,29 +136,7 @@ def analyze_content(text):
     # Get unique entities
     entities = list(set(capitalized_phrases))
     
-    # Extract key phrases (n-grams) that appear multiple times
-    phrases = []
-    n_gram_size = 3  # Look for 3-word phrases
-    
-    for i in range(len(words) - n_gram_size + 1):
-        phrase = ' '.join(words[i:i+n_gram_size])
-        # Clean the phrase a bit
-        phrase = phrase.strip('.,:;!?()[]{}""\'')
-        if len(phrase.split()) == n_gram_size:  # Make sure it's still a complete phrase
-            phrases.append(phrase.lower())
-    
-    # Count phrase frequencies
-    phrase_freq = {}
-    for phrase in phrases:
-        if phrase in phrase_freq:
-            phrase_freq[phrase] += 1
-        else:
-            phrase_freq[phrase] = 1
-    
-    # Get repeated phrases
-    key_phrases = [phrase for phrase, count in phrase_freq.items() if count > 1]
-    
-    return topic_words[:5], entities[:5], key_phrases[:5]
+    return topic_words[:5], entities[:5]
 
 def generate_comprehensive_summary(transcript_data, raw_segments):
     """
@@ -169,12 +147,11 @@ def generate_comprehensive_summary(transcript_data, raw_segments):
     speakers = transcript_data['speakers']
     topics = transcript_data['topics']
     entities = transcript_data['entities']
-    key_phrases = transcript_data['key_phrases']
     segments = transcript_data['segments']
     
     # If no meaningful data was extracted, fall back to basic extraction
     if not segments:
-        return generate_mock_summary(raw_segments)
+        return generate_fallback_summary(raw_segments)
     
     # Organize segments into beginning, middle, and end sections
     total_segments = len(segments)
@@ -271,9 +248,9 @@ def extract_key_sentences(text, num_sentences=2):
         indices = list(range(0, len(sentences), step))[:num_sentences]
         return '. '.join([sentences[i] for i in indices]) + '.'
 
-def generate_mock_summary(segments):
+def generate_fallback_summary(segments):
     """
-    Generates a more detailed summary by extracting key information from the transcription segments.
+    Generates a detailed summary by extracting key information from the transcription segments.
     This is a fallback method if the advanced analysis fails.
     """
     # Extract the text portions (without timestamps)
@@ -289,7 +266,7 @@ def generate_mock_summary(segments):
     if not texts:
         return "No transcription available to summarize."
     
-    # Calculate the number of segments to include based on video length (approx. 20% of content)
+    # Calculate the number of segments to include based on video length
     num_key_segments = max(3, len(texts) // 5)
     
     # Find beginning segments (first 2 or 10% of segments)
