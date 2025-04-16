@@ -66,17 +66,12 @@ export async function processVideo(videoId: number): Promise<void> {
     );
     const outputSummaryPath = path.join(summariesDir, `${fileNameWithoutExt}_summary.mp4`);
     
-    // Step 1: Transcribe the video
+    // Step 1: Transcribe the video (for video selection purposes only)
     console.log(`Transcribing video: ${videoId}`);
     const transcribeScript = path.join(processorDir, "transcribe.py");
     const transcription = await runPythonScript(transcribeScript, [inputVideoPath]);
     
-    // Step 2: Summarize the text
-    console.log(`Summarizing text: ${videoId}`);
-    const summarizeScript = path.join(processorDir, "summarize.py");
-    const textSummary = await runPythonScript(summarizeScript, [transcription]);
-    
-    // Step 3: Create highlight video
+    // Step 2: Create highlight video (skip text summary generation)
     console.log(`Creating highlight video: ${videoId}`);
     const videoTrimScript = path.join(processorDir, "video_trim.py");
     const videoTrimResult = await runPythonScript(videoTrimScript, [inputVideoPath, transcription, outputSummaryPath]);
@@ -90,10 +85,10 @@ export async function processVideo(videoId: number): Promise<void> {
     // Create video summary entry
     const summaryData = insertVideoSummarySchema.parse({
       videoId,
-      textSummary,
       transcription,
       summaryVideoPath: outputSummaryPath,
-      summaryDuration: durations.summaryDuration
+      summaryDuration: durations.summaryDuration,
+      textSummary: null // Not generating text summaries as per requirement
     });
     
     await storage.createVideoSummary(summaryData);

@@ -50,12 +50,12 @@ export const insertVideoSchema = createInsertSchema(videos).pick({
 });
 
 // Schema for inserting a video summary
-export const insertVideoSummarySchema = createInsertSchema(videoSummaries).pick({
-  videoId: true,
-  textSummary: true,
-  transcription: true,
-  summaryVideoPath: true,
-  summaryDuration: true,
+export const insertVideoSummarySchema = z.object({
+  videoId: z.number(),
+  transcription: z.string(),
+  summaryVideoPath: z.string(),
+  summaryDuration: z.number(),
+  textSummary: z.string().nullable().optional(),
 });
 
 // Schema for updating video status
