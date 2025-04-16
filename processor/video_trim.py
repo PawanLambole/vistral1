@@ -33,14 +33,31 @@ def trim_video(input_video_path, transcription, output_path):
         # Select important segments from the transcript
         segments = select_highlight_segments(video_duration, transcription)
         
-        # If no segments could be selected, use default segments
+        # If no segments could be selected, create more comprehensive default segments
         if not segments:
-            # Create defaults: intro, middle, and end segments
-            segments = [
-                {'start': 0, 'duration': min(15, video_duration * 0.1)},
-                {'start': video_duration / 2 - 10, 'duration': min(20, video_duration * 0.15)},
-                {'start': max(0, video_duration - 15), 'duration': min(15, video_duration * 0.1)}
-            ]
+            # Calculate better default segments to cover more of the video
+            # Create a series of evenly spaced segments throughout the video
+            segment_count = max(5, min(10, int(video_duration / 30)))  # More segments for longer videos
+            segment_duration = min(25, video_duration * 0.15)  # Longer segment duration
+            
+            segments = []
+            
+            # Always include intro
+            segments.append({'start': 0, 'duration': segment_duration})
+            
+            # Add evenly spaced segments throughout the video
+            if segment_count > 2:  # If we have room for more than intro and outro
+                for i in range(1, segment_count - 1):
+                    position = (video_duration * i) / (segment_count - 1)
+                    # Add a small offset to avoid the "push" effect
+                    start_pos = max(0.5, position - (segment_duration / 2))
+                    segments.append({'start': start_pos, 'duration': segment_duration})
+            
+            # Always include outro
+            segments.append({
+                'start': max(0.5, video_duration - segment_duration),
+                'duration': segment_duration
+            })
         
         # Create a temporary directory for the segment files
         temp_dir = tempfile.mkdtemp()
@@ -153,6 +170,11 @@ def select_highlight_segments(duration, transcription):
                         minutes, seconds = map(int, time_part.split(':'))
                         start_time = minutes * 60 + seconds
                         
+                        # Add a small buffer to avoid the "push" effect at the start
+                        # By starting a bit earlier (0.5 seconds) if possible
+                        if start_time > 0.5:
+                            start_time -= 0.5
+                        
                         # Extract content
                         content = ' '.join(lines[1:]) if len(lines) > 1 else ""
                         
@@ -167,8 +189,16 @@ def select_highlight_segments(duration, transcription):
         if timestamp_segments:
             # Score segments based on potential importance
             scored_segments = []
-            important_keywords = ['important', 'key', 'essential', 'critical', 'main', 'significant',
-                                 'highlight', 'crucial', 'vital', 'primary', 'central', 'core']
+            
+            # Expanded list of important keywords for better content detection
+            important_keywords = [
+                'important', 'key', 'essential', 'critical', 'main', 'significant',
+                'highlight', 'crucial', 'vital', 'primary', 'central', 'core',
+                'demo', 'example', 'feature', 'benefit', 'result', 'outcome',
+                'solution', 'problem', 'challenge', 'conclusion', 'introduction',
+                'summary', 'overview', 'tutorial', 'guide', 'walkthrough',
+                'how to', 'steps', 'process', 'method', 'technique'
+            ]
             
             for i, segment in enumerate(timestamp_segments):
                 content = segment['content'].lower()
@@ -177,7 +207,7 @@ def select_highlight_segments(duration, transcription):
                 score = 1.0
                 
                 # Position-based scoring (intro and conclusion are important)
-                position_ratio = i / len(timestamp_segments)
+                position_ratio = i / max(1, len(timestamp_segments))
                 if position_ratio < 0.15 or position_ratio > 0.85:
                     score += 1.0
                 
@@ -199,49 +229,57 @@ def select_highlight_segments(duration, transcription):
             # Sort by score and select top segments
             scored_segments.sort(key=lambda x: x['score'], reverse=True)
             
-            # Calculate total highlight duration (aim for ~20% of original)
-            target_duration = min(duration * 0.2, 120)  # Cap at 2 minutes
+            # Calculate total highlight duration (aim for ~40% of original, increased from 20%)
+            target_duration = min(duration * 0.4, 180)  # Cap at 3 minutes, increased from 2
             
             # Select segments up to the target duration
             current_duration = 0
             selected_segments = []
             
-            # Always include the top segment
-            if scored_segments:
-                top_segment = scored_segments[0]
-                
-                # Estimate segment duration (assume ~15 seconds per segment or distance to next segment)
-                if len(scored_segments) > 1:
-                    segment_duration = min(15, scored_segments[1]['start'] - top_segment['start'])
-                else:
-                    segment_duration = 15
+            # Always include the top segments
+            top_segments = scored_segments[:min(3, len(scored_segments))]
+            for top_segment in top_segments:
+                # Estimate segment duration (make longer segments - 20 seconds instead of 15)
+                segment_duration = 20
                 
                 selected_segments.append({
                     'start': top_segment['start'],
                     'duration': segment_duration
                 })
                 current_duration += segment_duration
-                
-                # Add more segments, prioritizing variety (not just highest scores)
-                remaining_segments = scored_segments[1:]
-                
-                # Sort remaining segments by position to ensure coverage across the video
-                remaining_segments.sort(key=lambda x: x['start'])
-                
-                # Select evenly distributed segments up to the target duration
-                step = max(1, len(remaining_segments) // 5)  # Aim for ~5 more segments
-                for i in range(0, len(remaining_segments), step):
-                    if current_duration >= target_duration:
-                        break
-                        
-                    segment = remaining_segments[i]
+            
+            # Add more segments, prioritizing variety
+            remaining_segments = scored_segments[len(top_segments):]
+            
+            # Sort remaining segments by position to ensure coverage across the video
+            remaining_segments.sort(key=lambda x: x['start'])
+            
+            # Select evenly distributed segments up to the target duration
+            # Aim for more segments (reduced step size)
+            step = max(1, len(remaining_segments) // 8)  
+            for i in range(0, len(remaining_segments), step):
+                if current_duration >= target_duration:
+                    break
                     
-                    # Determine segment duration
-                    if i + 1 < len(remaining_segments):
-                        next_start = remaining_segments[i+1]['start']
-                        segment_duration = min(15, next_start - segment['start'])
-                    else:
-                        segment_duration = 15
+                segment = remaining_segments[i]
+                
+                # Longer segment durations
+                segment_duration = 20
+                
+                selected_segments.append({
+                    'start': segment['start'],
+                    'duration': segment_duration
+                })
+                current_duration += segment_duration
+            
+            # If we still have available duration and segments, add some more
+            if current_duration < target_duration and len(remaining_segments) > 0:
+                additional_segments = min(3, len(remaining_segments))
+                for i in range(additional_segments):
+                    idx = (len(remaining_segments) // 2 + i) % len(remaining_segments)
+                    segment = remaining_segments[idx]
+                    
+                    segment_duration = 15
                     
                     selected_segments.append({
                         'start': segment['start'],

@@ -84,15 +84,15 @@ def process_transcript_segments(segments):
 def analyze_content(text):
     """
     Analyze text content to extract topics and entities.
-    In a real implementation, this would use NLP techniques such as topic modeling,
-    named entity recognition, and key phrase extraction.
+    Enhanced implementation with better topic extraction and entity recognition.
     """
     # Clean the text
     clean_text = text.lower()
     
     # Remove common filler words
     filler_words = ["um", "uh", "like", "you know", "so", "actually", "basically", "literally",
-                    "honestly", "now", "then", "well", "just", "okay", "right", "yeah"]
+                    "honestly", "now", "then", "well", "just", "okay", "right", "yeah", 
+                    "mmm", "hmm", "ah", "oh", "er", "um", "uhh", "ahem"]
     for word in filler_words:
         clean_text = clean_text.replace(" " + word + " ", " ")
     
@@ -105,25 +105,85 @@ def analyze_content(text):
         else:
             word_freq[word] = 1
     
-    # Filter out common stop words
-    stop_words = ["this", "that", "these", "those", "with", "have", "from", "they", "will", 
-                 "what", "when", "where", "their", "there", "here", "about", "which", "were",
-                 "would", "could", "should", "does", "doing", "because", "through"]
+    # Expanded list of stop words for better filtering
+    stop_words = [
+        "this", "that", "these", "those", "with", "have", "from", "they", "will", 
+        "what", "when", "where", "their", "there", "here", "about", "which", "were",
+        "would", "could", "should", "does", "doing", "because", "through", "some",
+        "other", "more", "most", "such", "been", "being", "very", "much", "many",
+        "your", "yours", "them", "then", "than", "that", "also", "over", "only",
+        "into", "same", "even", "himself", "herself", "myself", "yourself", "itself"
+    ]
     for word in stop_words:
         if word in word_freq:
             del word_freq[word]
     
-    # Get top topics based on frequency
-    topics = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)[:10]
-    topic_words = [word for word, _ in topics if word_freq[word] > 1]
+    # Extract n-grams (2-word and 3-word phrases) for better topic recognition
+    bigrams = []
+    trigrams = []
     
-    # Try to extract potential entities (capitalized phrases in original text)
+    word_list = clean_text.split()
+    for i in range(len(word_list) - 1):
+        w1 = word_list[i]
+        w2 = word_list[i + 1]
+        if len(w1) > 3 and len(w2) > 3 and w1 not in stop_words and w2 not in stop_words:
+            bigrams.append(f"{w1} {w2}")
+    
+    for i in range(len(word_list) - 2):
+        w1 = word_list[i]
+        w2 = word_list[i + 1]
+        w3 = word_list[i + 2]
+        if (len(w1) > 3 and len(w2) > 3 and len(w3) > 3 and 
+            w1 not in stop_words and w2 not in stop_words and w3 not in stop_words):
+            trigrams.append(f"{w1} {w2} {w3}")
+    
+    # Count n-gram frequencies
+    bigram_freq = {}
+    for bg in bigrams:
+        if bg in bigram_freq:
+            bigram_freq[bg] += 1
+        else:
+            bigram_freq[bg] = 1
+    
+    trigram_freq = {}
+    for tg in trigrams:
+        if tg in trigram_freq:
+            trigram_freq[tg] += 1
+        else:
+            trigram_freq[tg] = 1
+    
+    # Get top individual words based on frequency (with higher threshold)
+    top_words = sorted(word_freq.items(), key=lambda x: x[1], reverse=True)
+    word_topics = [word for word, freq in top_words if freq > max(2, len(words) // 200)][:7]
+    
+    # Get top bigrams and trigrams 
+    top_bigrams = sorted(bigram_freq.items(), key=lambda x: x[1], reverse=True)
+    bigram_topics = [bg for bg, freq in top_bigrams if freq > 1][:3]
+    
+    top_trigrams = sorted(trigram_freq.items(), key=lambda x: x[1], reverse=True)
+    trigram_topics = [tg for tg, freq in top_trigrams if freq > 1][:2]
+    
+    # Combine all topics
+    combined_topics = []
+    combined_topics.extend(trigram_topics)  # Prefer longer phrases first
+    combined_topics.extend(bigram_topics)
+    combined_topics.extend(word_topics)
+    
+    # Ensure we don't have too many topics
+    topics = combined_topics[:8]
+    
+    # Enhanced entity extraction (looking for proper nouns and capitalized words)
+    # Improved entity detection by looking for sequences of capitalized words
     words = text.split()
     capitalized_phrases = []
     current_phrase = []
     
     for word in words:
-        if word and word[0].isupper() and len(word) > 1:
+        # Remove punctuation from the word for checking capitalization
+        clean_word = word.strip(".,;:!?\"'()[]{}")
+        
+        # Check if it's potentially a proper noun (capitalized and not at start of sentence)
+        if clean_word and len(clean_word) > 1 and clean_word[0].isupper():
             current_phrase.append(word)
         elif current_phrase:
             if len(current_phrase) > 0:
@@ -133,10 +193,41 @@ def analyze_content(text):
     if current_phrase:
         capitalized_phrases.append(' '.join(current_phrase))
     
-    # Get unique entities
-    entities = list(set(capitalized_phrases))
+    # Filter for more likely entities (more than one word or repeated)
+    entity_count = {}
+    for phrase in capitalized_phrases:
+        clean_phrase = phrase.strip(".,;:!?\"'()[]{}")
+        if clean_phrase:
+            if clean_phrase in entity_count:
+                entity_count[clean_phrase] += 1
+            else:
+                entity_count[clean_phrase] = 1
     
-    return topic_words[:5], entities[:5]
+    # Prioritize multi-word entities and frequently occurring ones
+    prioritized_entities = []
+    for entity, count in entity_count.items():
+        # Higher score for multi-word entities and repeated mentions
+        priority = (len(entity.split()) > 1) * 2 + min(3, count)
+        prioritized_entities.append((entity, priority))
+    
+    # Sort by priority score and get top entities
+    entities = [e for e, _ in sorted(prioritized_entities, key=lambda x: x[1], reverse=True)[:8]]
+    
+    # Combine entities that are substrings of others
+    # e.g., if we have "John Smith" and "John", keep only "John Smith"
+    final_entities = []
+    for entity in entities:
+        # Check if this entity is a substring of any entity we're already keeping
+        if not any(entity in other_entity and entity != other_entity for other_entity in final_entities):
+            # Also check if any entity we're keeping is a substring of this one
+            for i, kept_entity in enumerate(final_entities):
+                if kept_entity in entity and kept_entity != entity:
+                    final_entities[i] = entity
+                    break
+            else:
+                final_entities.append(entity)
+    
+    return topics, final_entities[:6]
 
 def generate_comprehensive_summary(transcript_data, raw_segments):
     """
@@ -163,6 +254,25 @@ def generate_comprehensive_summary(transcript_data, raw_segments):
     intro_text = " ".join([s.get('text', '') for s in intro_segments])
     conclusion_text = " ".join([s.get('text', '') for s in conclusion_segments])
     
+    # Detect the type of video content to customize the summary
+    video_type = "informational" # Default
+    educational_keywords = ["learn", "course", "tutorial", "guide", "how to", "step", "teach", "lesson", "class"]
+    product_keywords = ["product", "feature", "release", "review", "unbox", "demonstration", "launch", "version"]
+    entertainment_keywords = ["enjoy", "fun", "experience", "adventure", "game", "play", "entertain"]
+    news_keywords = ["news", "report", "update", "latest", "breaking", "announce", "recent"]
+    
+    all_text = " ".join([s.get('text', '') for s in segments]).lower()
+    
+    # Determine video type based on content analysis
+    if any(keyword in all_text for keyword in educational_keywords):
+        video_type = "educational"
+    elif any(keyword in all_text for keyword in product_keywords):
+        video_type = "product"
+    elif any(keyword in all_text for keyword in entertainment_keywords):
+        video_type = "entertainment"
+    elif any(keyword in all_text for keyword in news_keywords):
+        video_type = "news"
+    
     # Select the most important middle segments based on topic relevance
     important_middle_segments = []
     if topics and middle_segments:
@@ -170,28 +280,55 @@ def generate_comprehensive_summary(transcript_data, raw_segments):
             text = segment.get('text', '').lower()
             # Score segment based on how many key topics it covers
             topic_matches = sum(1 for topic in topics if topic in text)
-            if topic_matches > 0:
-                segment['importance'] = topic_matches
+            
+            # Increase score for segments containing entities
+            entity_matches = sum(1 for entity in entities if entity.lower() in text.lower())
+            
+            # Calculate segment importance score 
+            importance = topic_matches + (entity_matches * 1.5)
+            
+            # Add position-based weight - segments in the middle of content sections often contain key info
+            position_ratio = middle_segments.index(segment) / max(1, len(middle_segments))
+            if 0.3 < position_ratio < 0.7:  # Middle of the middle section
+                importance += 0.5
+                
+            segment['importance'] = importance
+            
+            # Only include segments with some relevance
+            if importance > 0:
                 important_middle_segments.append(segment)
         
         # Sort by importance and take top segments
         important_middle_segments.sort(key=lambda x: x.get('importance', 0), reverse=True)
-        important_middle_segments = important_middle_segments[:min(5, len(important_middle_segments))]
+        important_middle_segments = important_middle_segments[:min(6, len(important_middle_segments))]
     
     # If we couldn't find important segments by topic matching, select some evenly distributed ones
     if not important_middle_segments and middle_segments:
         step = max(1, len(middle_segments) // 5)
         important_indices = list(range(0, len(middle_segments), step))
-        important_middle_segments = [middle_segments[i] for i in important_indices if i < len(middle_segments)][:5]
+        important_middle_segments = [middle_segments[i] for i in important_indices if i < len(middle_segments)][:6]
     
-    # Build the summary
+    # Build the summary with an appropriate introduction based on video type
     summary = ""
     
-    # Start with the main topics
-    if topics:
-        summary += f"This video primarily discusses: {', '.join(topics)}.\n\n"
+    # Customize introduction based on video type
+    if video_type == "educational":
+        summary += f"This educational video explores {', '.join(topics)}.\n\n"
+    elif video_type == "product":
+        if entities:
+            summary += f"This product demonstration showcases {', '.join(entities)}, highlighting features related to {', '.join(topics)}.\n\n"
+        else:
+            summary += f"This product-focused video discusses {', '.join(topics)}.\n\n"
+    elif video_type == "entertainment":
+        summary += f"This entertainment video features content related to {', '.join(topics)}.\n\n"
+    elif video_type == "news":
+        if entities:
+            summary += f"This news report covers developments about {', '.join(entities)}, focusing on {', '.join(topics)}.\n\n"
+        else:
+            summary += f"This news update discusses recent developments in {', '.join(topics)}.\n\n"
     else:
-        summary += "This video covers several key topics.\n\n"
+        # Default introduction
+        summary += f"This video covers {', '.join(topics)}.\n\n"
     
     # Add information about speakers if multiple
     if len(speakers) > 1:
@@ -199,7 +336,8 @@ def generate_comprehensive_summary(transcript_data, raw_segments):
     
     # Add beginning context with specific content
     if intro_text:
-        summary += "At the beginning: " + extract_key_sentences(intro_text, 2) + "\n\n"
+        intro_summary = extract_key_sentences(intro_text, 2)
+        summary += "At the beginning: " + intro_summary + "\n\n"
     
     # Add key points from middle segments
     if important_middle_segments:
@@ -211,16 +349,45 @@ def generate_comprehensive_summary(transcript_data, raw_segments):
             if ': ' in point_text:
                 point_text = point_text.split(': ', 1)[1]
             
-            summary += f"• {point_text}\n"
+            # Clean up the point text to make it more readable
+            # Remove filler phrases and common speech artifacts
+            filler_patterns = [
+                "you know", "I mean", "like", "sort of", "kind of", "basically", 
+                "um", "uh", "er", "ah", "mm", "hmm", "actually", "literally"
+            ]
+            clean_point = point_text
+            for filler in filler_patterns:
+                clean_point = clean_point.replace(f" {filler} ", " ")
+            
+            # Truncate very long points for readability
+            max_length = 120
+            if len(clean_point) > max_length:
+                sentences = clean_point.split('. ')
+                if len(sentences) > 1:
+                    clean_point = sentences[0] + '.'
+                else:
+                    clean_point = clean_point[:max_length-3] + "..."
+            
+            summary += f"• {clean_point}\n"
         summary += "\n"
     
-    # Add mentioned entities if available
-    if entities:
-        summary += f"The video mentions: {', '.join(entities)}.\n\n"
+    # Add mentioned entities if available and not already covered in the introduction
+    if entities and video_type not in ["product", "news"]:
+        entity_phrase = "key names" if video_type == "news" else "notable mentions"
+        summary += f"The video includes these {entity_phrase}: {', '.join(entities)}.\n\n"
     
-    # Add conclusion
+    # Add conclusion with appropriate framing based on video type
     if conclusion_text:
-        summary += "Towards the end: " + extract_key_sentences(conclusion_text, 2)
+        conclusion_summary = extract_key_sentences(conclusion_text, 2)
+        
+        if video_type == "educational":
+            summary += "The video concludes with: " + conclusion_summary
+        elif video_type == "product":
+            summary += "Final points about the product: " + conclusion_summary
+        elif video_type == "news":
+            summary += "The report concludes with: " + conclusion_summary
+        else:
+            summary += "Towards the end: " + conclusion_summary
     
     return summary
 
