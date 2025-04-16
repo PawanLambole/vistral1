@@ -51,8 +51,19 @@ export async function processVideo(videoId: number): Promise<void> {
       fs.mkdirSync(summariesDir, { recursive: true });
     }
     
-    // Extract filename without extension
-    const fileNameWithoutExt = path.basename(video.originalName, path.extname(video.originalName));
+    // Extract filename without extension and sanitize it for file system
+    const sanitizeFileName = (name: string): string => {
+      // Limit length and remove problematic characters
+      const sanitized = name
+        .replace(/[^\w\s.-]/g, '_') // Replace non-alphanumeric chars except for some safe ones
+        .replace(/\s+/g, '_')      // Replace spaces with underscores
+        .slice(0, 50);              // Limit length to 50 chars
+      return sanitized;
+    };
+    
+    const fileNameWithoutExt = sanitizeFileName(
+      path.basename(video.originalName, path.extname(video.originalName))
+    );
     const outputSummaryPath = path.join(summariesDir, `${fileNameWithoutExt}_summary.mp4`);
     
     // Step 1: Transcribe the video

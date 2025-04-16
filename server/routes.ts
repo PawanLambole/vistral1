@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import path from "path";
@@ -11,6 +11,20 @@ import {
   insertVideoSummarySchema
 } from "@shared/schema";
 import { processVideo } from "./processVideo";
+
+// Extend the Request type to include multer's file
+declare global {
+  namespace Express {
+    interface Request {
+      file?: {
+        originalname: string;
+        mimetype: string;
+        path: string;
+        size: number;
+      };
+    }
+  }
+}
 
 // Create directories if they don't exist
 const uploadsDir = path.join(process.cwd(), "uploads");
@@ -28,7 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API endpoints for video processing
   
   // Upload video endpoint
-  app.post("/api/videos/upload", upload.single("video"), async (req: Request, res: Response) => {
+  app.post("/api/videos/upload", upload.single("video"), async (req: any, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "No video file uploaded" });

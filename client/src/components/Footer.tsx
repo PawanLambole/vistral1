@@ -12,14 +12,14 @@ export default function Footer() {
           </div>
           
           <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 text-sm text-gray-500 dark:text-gray-400">
-            <Link href="#">
-              <a className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Terms</a>
+            <Link href="#" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+              Terms
             </Link>
-            <Link href="#">
-              <a className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Privacy</a>
+            <Link href="#" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+              Privacy
             </Link>
-            <Link href="#">
-              <a className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">Contact</a>
+            <Link href="#" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+              Contact
             </Link>
             <span>© {new Date().getFullYear()} Video Summarizer</span>
           </div>
