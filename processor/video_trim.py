@@ -14,6 +14,8 @@ def trim_video(input_video_path, transcription, output_path):
     This implementation analyzes the transcription to identify important
     segments and uses FFmpeg to extract and join those segments.
     """
+    video_duration = 0
+    
     try:
         # Get video metadata using ffprobe
         result = subprocess.run([
@@ -26,18 +28,18 @@ def trim_video(input_video_path, transcription, output_path):
         
         # Parse the output to get the duration
         output = json.loads(result.stdout)
-        duration = float(output['format']['duration'])
+        video_duration = float(output['format']['duration'])
         
         # Select important segments from the transcript
-        segments = select_highlight_segments(duration, transcription)
+        segments = select_highlight_segments(video_duration, transcription)
         
         # If no segments could be selected, use default segments
         if not segments:
-            # Create defaults: intro (first 15 seconds), middle (a 20-second clip from the middle), and end (last 15 seconds)
+            # Create defaults: intro, middle, and end segments
             segments = [
-                {'start': 0, 'duration': min(15, duration * 0.1)},
-                {'start': duration / 2 - 10, 'duration': min(20, duration * 0.15)},
-                {'start': max(0, duration - 15), 'duration': min(15, duration * 0.1)}
+                {'start': 0, 'duration': min(15, video_duration * 0.1)},
+                {'start': video_duration / 2 - 10, 'duration': min(20, video_duration * 0.15)},
+                {'start': max(0, video_duration - 15), 'duration': min(15, video_duration * 0.1)}
             ]
         
         # Create a temporary directory for the segment files
@@ -47,10 +49,10 @@ def trim_video(input_video_path, transcription, output_path):
         # Extract each segment to a separate file
         for i, segment in enumerate(segments):
             start = max(0, segment['start'])
-            duration_sec = min(segment['duration'], duration - start)
+            duration_sec = min(segment['duration'], video_duration - start)
             
             # Skip segments that are too short or out of bounds
-            if duration_sec < 1 or start >= duration:
+            if duration_sec < 1 or start >= video_duration:
                 continue
                 
             segment_file = os.path.join(temp_dir, f"segment_{i}.mp4")
@@ -69,7 +71,7 @@ def trim_video(input_video_path, transcription, output_path):
         
         # If no valid segments were extracted, just copy a short portion of the original
         if not segment_files:
-            default_duration = min(60, duration)
+            default_duration = min(60, video_duration)
             subprocess.run([
                 'ffmpeg',
                 '-y',
@@ -101,14 +103,16 @@ def trim_video(input_video_path, transcription, output_path):
         for file in segment_files:
             if os.path.exists(file):
                 os.remove(file)
-        os.remove(list_file)
+        if os.path.exists(list_file):
+            os.remove(list_file)
         os.rmdir(temp_dir)
         
     except Exception as e:
         print(f"Error trimming video: {str(e)}", file=sys.stderr)
         # Create a fallback video by just copying a portion of the original
         try:
-            fallback_duration = min(60, duration if 'duration' in locals() else 60)
+            # Use a default duration
+            fallback_duration = min(60, video_duration if video_duration > 0 else 60)
             subprocess.run([
                 'ffmpeg',
                 '-y',
@@ -117,8 +121,8 @@ def trim_video(input_video_path, transcription, output_path):
                 '-c', 'copy',
                 output_path
             ], capture_output=True)
-        except:
-            print(f"Failed to create fallback video", file=sys.stderr)
+        except Exception as fallback_error:
+            print(f"Failed to create fallback video: {str(fallback_error)}", file=sys.stderr)
             sys.exit(1)
 
 def select_highlight_segments(duration, transcription):
@@ -267,4 +271,46 @@ if __name__ == "__main__":
         print(f"Error: Input video not found at {input_video}", file=sys.stderr)
         sys.exit(1)
     
-    trim_video(input_video, transcription, output_path)
+    try:
+        # Get original video duration
+        result = subprocess.run([
+            'ffprobe', 
+            '-v', 'error', 
+            '-show_entries', 'format=duration', 
+            '-of', 'json', 
+            input_video
+        ], capture_output=True, text=True)
+        
+        output = json.loads(result.stdout)
+        original_duration = float(output['format']['duration'])
+        
+        # Process the video
+        trim_video(input_video, transcription, output_path)
+        
+        # Get summary video duration
+        if os.path.exists(output_path):
+            result = subprocess.run([
+                'ffprobe', 
+                '-v', 'error', 
+                '-show_entries', 'format=duration', 
+                '-of', 'json', 
+                output_path
+            ], capture_output=True, text=True)
+            
+            output = json.loads(result.stdout)
+            summary_duration = float(output['format']['duration'])
+        else:
+            summary_duration = 0
+        
+        # Output durations as JSON
+        durations = {
+            "originalDuration": original_duration,
+            "summaryDuration": summary_duration
+        }
+        
+        print(json.dumps(durations))
+        
+    except Exception as e:
+        print(f"Error in video trimming process: {str(e)}", file=sys.stderr)
+        # Return a minimal valid JSON even in case of error
+        print('{"originalDuration": 0, "summaryDuration": 0}')
