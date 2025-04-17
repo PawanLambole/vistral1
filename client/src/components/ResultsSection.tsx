@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Download, Share, Play, Plus } from "lucide-react";
+import { Copy, Download, Share, ChevronsDown, ChevronsUp, Play, Plus } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,7 @@ interface ResultsSectionProps {
 
 export default function ResultsSection({ videoId, onNewVideo }: ResultsSectionProps) {
   const [summaryData, setSummaryData] = useState<VideoSummaryResult | null>(null);
+  const [isTranscriptOpen, setIsTranscriptOpen] = useState(false);
   const [isVideoPlaying, setIsVideoPlaying] = useState(false);
   const { toast } = useToast();
   const playerRef = useRef<ReactPlayer>(null);
@@ -51,6 +52,26 @@ export default function ResultsSection({ videoId, onNewVideo }: ResultsSectionPr
     }
   };
 
+  const toggleTranscript = () => {
+    setIsTranscriptOpen(!isTranscriptOpen);
+  };
+
+  // We've removed the copyTextToClipboard function as it's no longer needed
+
+  // Parse transcript entries from the transcription text
+  const parseTranscriptEntries = (transcription: string) => {
+    // This is a simplistic parser - in a real application, 
+    // the transcription would likely have a more structured format
+    return transcription.split('\n\n').map((block, index) => {
+      const lines = block.split('\n');
+      const timestamp = lines[0].match(/(\d+:\d+)/)?.[0] || `00:${index}0`;
+      const speaker = "Speaker 1";
+      const text = lines.slice(1).join(' ') || lines[0];
+      
+      return { timestamp, speaker, text };
+    });
+  };
+
   // Format percentage reduction
   const calculateReduction = (original?: number, summary?: number) => {
     if (!original || !summary || original === 0) return "0%";
@@ -67,6 +88,10 @@ export default function ResultsSection({ videoId, onNewVideo }: ResultsSectionPr
       </Card>
     );
   }
+
+  const transcriptEntries = summaryData.transcription 
+    ? parseTranscriptEntries(summaryData.transcription)
+    : [];
 
   return (
     <div>
@@ -167,6 +192,54 @@ export default function ResultsSection({ videoId, onNewVideo }: ResultsSectionPr
           </div>
         </CardContent>
       </Card>
+      
+      {/* Transcript Timeline (Expandable) */}
+      {summaryData.transcription && (
+        <Card className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden mb-8">
+          <div 
+            className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center cursor-pointer"
+            onClick={toggleTranscript}
+          >
+            <h3 className="text-lg font-medium">Complete Transcript & Timeline</h3>
+            {isTranscriptOpen ? 
+              <ChevronsUp className="text-gray-400 dark:text-gray-500" /> : 
+              <ChevronsDown className="text-gray-400 dark:text-gray-500" />
+            }
+          </div>
+          
+          {isTranscriptOpen && (
+            <CardContent className="p-6">
+              <div className="flex flex-col mb-3">
+                {transcriptEntries.map((entry, index) => (
+                  <div key={index} className="py-3 border-b border-gray-100 dark:border-gray-800 last:border-0">
+                    <div className="flex items-center gap-3 mb-1">
+                      <span className="text-xs font-medium px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-gray-700 dark:text-gray-300">
+                        {entry.timestamp}
+                      </span>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">{entry.speaker}</span>
+                    </div>
+                    <p className="text-gray-800 dark:text-gray-200">{entry.text}</p>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="flex justify-end">
+                <Button 
+                  variant="secondary" 
+                  size="sm"
+                  className="text-gray-700 dark:text-gray-300"
+                  asChild
+                >
+                  <a href={`/api/videos/${videoId}/transcript/download`} download={`transcript_${summaryData.originalName}.txt`}>
+                    <Download className="h-4 w-4 mr-1.5" />
+                    Download Full Transcript
+                  </a>
+                </Button>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
       
       {/* Additional Actions */}
       <div className="flex justify-between items-center mb-8">
