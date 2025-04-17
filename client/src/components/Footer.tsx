@@ -8,7 +8,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row md:justify-between md:items-center">
           <div className="flex items-center mb-4 md:mb-0">
             <Film className="text-primary h-5 w-5 mr-2" />
-            <span className="text-sm text-gray-600 dark:text-gray-300">Video Summarizer</span>
+            <span className="text-sm text-gray-600 dark:text-gray-300">Vistral</span>
           </div>
           
           <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 text-sm text-gray-500 dark:text-gray-400">
@@ -21,7 +21,7 @@ export default function Footer() {
             <Link href="#" className="hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
               Contact
             </Link>
-            <span>© {new Date().getFullYear()} Video Summarizer</span>
+            <span>© {new Date().getFullYear()} Vistral</span>
           </div>
         </div>
       </div>
