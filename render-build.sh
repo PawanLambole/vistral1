@@ -2,10 +2,12 @@
 # Exit on error
 set -o errexit
 
-# Install Python and dependencies
-apt-get update
-apt-get install -y python3 python3-pip ffmpeg libsndfile1
-
 # Build frontend assets
 npm ci
 npm run build
+
+# Print environment information
+echo "Node version: $(node -v)"
+echo "NPM version: $(npm -v)"
+echo "Current directory: $(pwd)"
+echo "Directory contents: $(ls -la)"

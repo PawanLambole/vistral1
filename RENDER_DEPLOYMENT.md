@@ -53,14 +53,17 @@ For the PostgreSQL database, you have a few options that don't require a credit 
    - Copy the connection string and add your password
    - Add it as an environment variable in Render: `DATABASE_URL`
 
-### 5. Add Python and FFmpeg
+### 5. Install Render Build Packs (Important!)
 
-The application requires Python and FFmpeg for video processing. These have been configured in the project with:
+For Python and FFmpeg support on Render's free tier, you'll need to use their buildpacks feature:
 
-1. A `render-build.sh` script that installs the necessary dependencies during build
-2. Updated `render.yaml` file that uses this build script
+1. In your Render dashboard, after creating your web service, go to **Settings** tab
+2. Scroll down to the "Build" section
+3. Add the following buildpacks in this exact order:
+   - `https://github.com/render-examples/python-3.9-buildpack.git` (for Python)
+   - `https://github.com/renderinc/render-buildpack-ffmpeg.git` (for FFmpeg)
 
-When you deploy through the Render dashboard, these will be automatically installed for you.
+Without these buildpacks, the video processing features will not work as they depend on Python and FFmpeg.
 
 ### 6. Important: Understanding File Storage on Render
 

@@ -2,7 +2,7 @@ services:
   - type: web
     name: video-summarizer
     env: node
-    buildCommand: chmod +x render-build.sh && ./render-build.sh
+    buildCommand: npm ci && npm run build
     startCommand: npm run start
     envVars:
       - key: NODE_ENV
@@ -11,3 +11,6 @@ services:
         value: 10000
       - key: RENDER
         value: "true"
+    buildpacks:
+      - url: https://github.com/render-examples/python-3.9-buildpack.git
+      - url: https://github.com/renderinc/render-buildpack-ffmpeg.git

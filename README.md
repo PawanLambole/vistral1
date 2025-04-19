@@ -26,7 +26,9 @@ This application can be deployed in several ways:
 For completely free deployment without payment information:
 
 - Follow the instructions in [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md)
+- Uses Render's buildpacks for Python and FFmpeg
 - Best for testing and portfolio purposes
+- **Important**: You must add the correct buildpacks in the Render dashboard for video processing to work
 - Note: Files are stored temporarily and will be lost when the app sleeps
 
 ### 2. Fly.io (Requires Credit Card for Verification)
