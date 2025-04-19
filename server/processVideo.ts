@@ -43,8 +43,13 @@ export async function processVideo(videoId: number): Promise<void> {
     }
     
     const inputVideoPath = video.originalPath;
-    const processorDir = path.join(process.cwd(), "processor");
-    const summariesDir = path.join(process.cwd(), "summaries");
+    // Define base storage path based on environment
+    const BASE_STORAGE_PATH = process.env.NODE_ENV === "production"
+      ? "/data" // Fly.io volume mount point
+      : process.cwd();
+    
+    const processorDir = path.join(process.cwd(), "processor"); // Scripts are still in the app directory
+    const summariesDir = path.join(BASE_STORAGE_PATH, "summaries");
     
     // Create summaries directory if it doesn't exist
     if (!fs.existsSync(summariesDir)) {

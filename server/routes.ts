@@ -26,9 +26,14 @@ declare global {
   }
 }
 
+// Define base storage path based on environment
+const BASE_STORAGE_PATH = process.env.NODE_ENV === "production"
+  ? "/data" // Fly.io volume mount point
+  : process.cwd();
+
 // Create directories if they don't exist
-const uploadsDir = path.join(process.cwd(), "uploads");
-const summariesDir = path.join(process.cwd(), "summaries");
+const uploadsDir = path.join(BASE_STORAGE_PATH, "uploads");
+const summariesDir = path.join(BASE_STORAGE_PATH, "summaries");
 
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });

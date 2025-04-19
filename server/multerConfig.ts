@@ -3,8 +3,13 @@ import path from "path";
 import fs from "fs";
 import { nanoid } from "nanoid";
 
+// Define storage paths for development and production
+const BASE_STORAGE_PATH = process.env.NODE_ENV === "production" 
+  ? "/data" // Fly.io volume mount point
+  : process.cwd();
+
 // Create uploads directory if it doesn't exist
-const uploadsDir = path.join(process.cwd(), "uploads");
+const uploadsDir = path.join(BASE_STORAGE_PATH, "uploads");
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }

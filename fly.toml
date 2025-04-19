@@ -1,0 +1,28 @@
+app = "video-summarizer-app"
+primary_region = "ewr" # Change this to your preferred region
+kill_signal = "SIGINT"
+kill_timeout = 5
+processes = []
+
+[build]
+  builder = "heroku/buildpacks:20"
+
+[env]
+  PORT = "5000"
+  NODE_ENV = "production"
+
+[mounts]
+  source = "data"
+  destination = "/data"
+
+[http_service]
+  internal_port = 5000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ["app"]
+
+[[statics]]
+  guest_path = "/app/dist"
+  url_prefix = "/"
