@@ -36,10 +36,14 @@ Add the following environment variables:
 
 For the PostgreSQL database, you have a few options that don't require a credit card:
 
-1. **Neon.tech**: 
+1. **Neon.tech** (Recommended): 
    - Go to [neon.tech](https://neon.tech/) and create a free account
    - Create a new project
-   - Copy the connection string
+   - After the project is created, you'll see a connection string that looks like:
+     ```
+     postgres://[user]:[password]@[endpoint]/[dbname]
+     ```
+   - Copy this connection string
    - Add it as an environment variable in Render: `DATABASE_URL`
 
 2. **Supabase**:
@@ -49,7 +53,16 @@ For the PostgreSQL database, you have a few options that don't require a credit 
    - Copy the connection string and add your password
    - Add it as an environment variable in Render: `DATABASE_URL`
 
-### 5. Important: Understanding File Storage on Render
+### 5. Add Python and FFmpeg
+
+The application requires Python and FFmpeg for video processing. These have been configured in the project with:
+
+1. A `render-build.sh` script that installs the necessary dependencies during build
+2. Updated `render.yaml` file that uses this build script
+
+When you deploy through the Render dashboard, these will be automatically installed for you.
+
+### 6. Important: Understanding File Storage on Render
 
 The application has been modified to use Render's temporary file system (`/tmp` directory) for storing uploaded videos and generated summaries. This means:
 
@@ -66,9 +79,22 @@ The application has been modified to use Render's temporary file system (`/tmp` 
 
 But for testing and portfolio purposes, the current configuration will work with the understanding that files are temporary.
 
-### 6. Deploy Your Application
+### 7. Deploy Your Application
 
 Click "Create Web Service" and wait for the deployment to complete. Once deployed, Render will provide you with a URL to access your application.
+
+### 8. Run Database Migrations
+
+After your app has been deployed, you need to create the database tables:
+
+1. In your Render dashboard, select your web service
+2. Go to the **Shell** tab
+3. Run the following command to create your database schema:
+   ```
+   npm run db:push
+   ```
+4. You should see output indicating that the tables were created successfully
+5. Your application is now ready to use!
 
 ## Handling Limitations
 
