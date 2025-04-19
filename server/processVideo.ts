@@ -43,10 +43,21 @@ export async function processVideo(videoId: number): Promise<void> {
     }
     
     const inputVideoPath = video.originalPath;
-    // Define base storage path based on environment
-    const BASE_STORAGE_PATH = process.env.NODE_ENV === "production"
-      ? "/data" // Fly.io volume mount point
-      : process.cwd();
+    
+    // Define storage paths based on environment
+    let BASE_STORAGE_PATH = process.cwd();
+
+    // For production environments
+    if (process.env.NODE_ENV === "production") {
+      // Check if running on Render.com (they set RENDER environment variable)
+      if (process.env.RENDER) {
+        // Use /tmp for Render free tier
+        BASE_STORAGE_PATH = "/tmp";
+      } else {
+        // Use /data for Fly.io or other providers with persistent volumes
+        BASE_STORAGE_PATH = "/data";
+      }
+    }
     
     const processorDir = path.join(process.cwd(), "processor"); // Scripts are still in the app directory
     const summariesDir = path.join(BASE_STORAGE_PATH, "summaries");

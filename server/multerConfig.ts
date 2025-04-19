@@ -3,10 +3,20 @@ import path from "path";
 import fs from "fs";
 import { nanoid } from "nanoid";
 
-// Define storage paths for development and production
-const BASE_STORAGE_PATH = process.env.NODE_ENV === "production" 
-  ? "/data" // Fly.io volume mount point
-  : process.cwd();
+// Define storage paths based on environment
+let BASE_STORAGE_PATH = process.cwd();
+
+// For production environments
+if (process.env.NODE_ENV === "production") {
+  // Check if running on Render.com (they set RENDER environment variable)
+  if (process.env.RENDER) {
+    // Use /tmp for Render free tier
+    BASE_STORAGE_PATH = "/tmp";
+  } else {
+    // Use /data for Fly.io or other providers with persistent volumes
+    BASE_STORAGE_PATH = "/data";
+  }
+}
 
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(BASE_STORAGE_PATH, "uploads");
