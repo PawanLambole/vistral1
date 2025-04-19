@@ -62,9 +62,12 @@ Due to Render's free tier limitations, we need to take a more focused approach:
 This approach runs the Node.js application without video processing capabilities:
 
 1. Create a new web service on Render
-2. For the build command, enter: `chmod +x render-build.sh && ./render-build.sh`
+2. **IMPORTANT**: For the build command, enter this EXACT text: `node build-render.js`
 3. For the start command, enter: `npm run start`
-4. In the **Environment** tab, add the `RENDER=true` and `NODE_ENV=production` variables
+4. In the **Environment** tab, add the following variables:
+   - `RENDER`: `true`
+   - `NODE_ENV`: `production`
+   - `PORT`: `10000`
 
 This will deploy a version of your application that can display the UI and handle basic functionality, but won't be able to process videos.
 
