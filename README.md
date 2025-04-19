@@ -23,12 +23,14 @@ This application can be deployed in several ways:
 
 ### 1. Render.com (No Credit Card Required)
 
-For completely free deployment without payment information:
+For a basic deployment without payment information:
 
 - Follow the instructions in [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md)
-- Uses Render's buildpacks for Python and FFmpeg
-- Best for testing and portfolio purposes
-- **Important**: You must add the correct buildpacks in the Render dashboard for video processing to work
+- **Limited functionality**: The free tier has restrictions that limit video processing
+- Several options provided in the deployment guide:
+  - Deploy web UI only (for demonstration)
+  - Consider alternative hosting services
+  - Use mock data for demo purposes
 - Note: Files are stored temporarily and will be lost when the app sleeps
 
 ### 2. Fly.io (Requires Credit Card for Verification)

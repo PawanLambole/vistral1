@@ -53,17 +53,38 @@ For the PostgreSQL database, you have a few options that don't require a credit 
    - Copy the connection string and add your password
    - Add it as an environment variable in Render: `DATABASE_URL`
 
-### 5. Install Render Build Packs (Important!)
+### 5. Deploy a Simplified Version (Important!)
 
-For Python and FFmpeg support on Render's free tier, you'll need to use their buildpacks feature:
+Due to Render's free tier limitations, we need to take a more focused approach:
 
-1. In your Render dashboard, after creating your web service, go to **Settings** tab
-2. Scroll down to the "Build" section
-3. Add the following buildpacks in this exact order:
-   - `https://github.com/render-examples/python-3.9-buildpack.git` (for Python)
-   - `https://github.com/renderinc/render-buildpack-ffmpeg.git` (for FFmpeg)
+#### Option 1: Deploy the Web Application Only
 
-Without these buildpacks, the video processing features will not work as they depend on Python and FFmpeg.
+This approach runs the Node.js application without video processing capabilities:
+
+1. Create a new web service on Render
+2. For the build command, enter: `chmod +x render-build.sh && ./render-build.sh`
+3. For the start command, enter: `npm run start`
+4. In the **Environment** tab, add the `RENDER=true` and `NODE_ENV=production` variables
+
+This will deploy a version of your application that can display the UI and handle basic functionality, but won't be able to process videos.
+
+#### Option 2: Use a Different Hosting Service
+
+For full functionality including video processing:
+
+1. **Railway.app**: Offers a generous free tier that supports both Node.js and Python
+2. **Fly.io**: Requires a credit card but has a free tier with Docker support
+3. **Digital Ocean App Platform**: Has a free trial and supports multiple services
+
+#### Option 3: Mock the Video Processing
+
+For portfolio demonstration purposes:
+
+1. Deploy the app to Render
+2. Modify the code to use pre-generated video summaries and transcripts
+3. This way you can showcase the UI and user flow without actual processing
+
+The current build script has been optimized to at least get the Node.js portion of your application running on Render.
 
 ### 6. Important: Understanding File Storage on Render
 
