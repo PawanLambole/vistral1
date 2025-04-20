@@ -21,26 +21,48 @@ A full-stack video summarization platform that transforms uploaded video content
 
 This application can be deployed in several ways:
 
-### 1. Render.com (No Credit Card Required)
+### 1. Vercel (Recommended - No Credit Card Required)
 
-For a basic deployment without payment information:
+The easiest and recommended deployment option:
 
-- Follow the instructions in [RENDER_DEPLOYMENT.md](./RENDER_DEPLOYMENT.md)
+- **Setup Guide**: [VERCEL_DEPLOYMENT.md](./VERCEL_DEPLOYMENT.md)
+- **Getting Started**: [VERCEL_GETTING_STARTED.md](./VERCEL_GETTING_STARTED.md)
+- **Database Migration**: [VERCEL_MIGRATION.md](./VERCEL_MIGRATION.md)
+- **Benefits**:
+  - No credit card required
+  - Excellent React/Vite application support
+  - Serverless functions for API endpoints
+  - GitHub integration for continuous deployment
+- **Architecture**:
+  - Uses Neon.tech for PostgreSQL database (free tier)
+  - API endpoints implemented as serverless functions
+  - Video storage using Cloudinary, Supabase, or AWS S3
+  - Client-side processing for videos (to handle Vercel's timeout limits)
+
+### 2. Render.com (No Credit Card Required)
+
+For a static demonstration deployment:
+
+- **Setup Guide**: [RENDER_STATIC_DEPLOYMENT.md](./RENDER_STATIC_DEPLOYMENT.md)
 - **Limited functionality**: The free tier has restrictions that limit video processing
-- Several options provided in the deployment guide:
-  - Deploy web UI only (for demonstration)
-  - Consider alternative hosting services
-  - Use mock data for demo purposes
-- Note: Files are stored temporarily and will be lost when the app sleeps
+- **Best for**:
+  - Demonstrating the UI/UX design
+  - Simple portfolio showcases without backend functionality
+- **Note**: Files are stored temporarily and will be lost when the app sleeps
 
-### 2. Fly.io (Requires Credit Card for Verification)
+### 3. Fly.io (Requires Credit Card for Verification)
 
 For more robust deployment with persistent storage:
 
-- Follow the instructions in [DEPLOYMENT.md](./DEPLOYMENT.md)
+- **Setup Guide**: [DEPLOYMENT.md](./DEPLOYMENT.md)
 - Uses Fly.io's free tier (requires credit card for verification)
-- Includes persistent volume storage for videos
-- Better for more reliable demos
+- **Benefits**:
+  - Includes persistent volume storage for videos
+  - Full Docker container deployment
+  - Better for more reliable demos with heavy video processing
+- **Best for**:
+  - Production-like environments
+  - Applications requiring longer processing times
 
 ## Local Development
 
